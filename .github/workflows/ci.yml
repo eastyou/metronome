@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.13"]
+        include:
+          - os: ubuntu-22.04
+            python-version: "3.9"
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Smoke test metronome generation
+        run: |
+          python -m metronome --bpm 90 --beats 4 --accent 1 --minutes 5 --title 课堂节拍器 -o metronome.html
+          python -c "text = open('metronome.html', encoding='utf-8').read(); assert 'AudioContext' in text; assert 'keydown' in text; assert 'metronome-config' in text; assert '时间到' in text; print('smoke ok', len(text))"
